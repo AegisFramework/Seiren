@@ -298,6 +298,7 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 			"*.rej" \
 			"*.bak" \
 			"*~" \
+			".flatpak-builder" \
 			".*.sw[nop]" \
 			".dirstamp" \
 		; do echo "/$$x"; done; \
