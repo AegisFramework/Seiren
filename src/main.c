@@ -25,6 +25,10 @@
 #include <gtk/gtk.h>
 
 
+GtkTextBuffer *buffer;
+GtkTextIter iter;
+
+
 static void activate (GtkApplication *app, gpointer user_data) {
 	GtkWidget *window;
 	GtkWidget *spinner, *button;
