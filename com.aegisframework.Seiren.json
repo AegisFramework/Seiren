@@ -25,7 +25,7 @@
                 "/share/pkgconfig", "/share/aclocal",
                 "/man", "/share/man", "/share/gtk-doc",
                 "/share/vala",
-                "*.la", "*.a"],
+                "*.la", "*.a", "./flatpak-builder"],
     "cleanup": [
         "/include",
         "/lib/pkgconfig",
@@ -36,7 +36,8 @@
         "/share/man",
         "/share/pkgconfig",
         "*.la",
-        "*.a"
+        "*.a",
+        "/.flatpak-builder"
     ],
     "modules": [
         {
@@ -47,13 +48,6 @@
                         "url": "https://github.com/AegisFramework/Seiren.git"
                     }
             ]
-        },
-        {
-    		"name": "server",
-    		"sources": [{
-				"type": "git",
-                        "url": "https://github.com/AegisFramework/Seiren.git"
-    		}]
         }
     ]
 }
