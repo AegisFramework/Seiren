@@ -1,4 +1,4 @@
-bin_PROGRAMS = seiren server
+bin_PROGRAMS = seiren
 
 seiren_SOURCES = main.c text.c text.h
 seiren_CFLAGS = $(SEIREN_CFLAGS)
