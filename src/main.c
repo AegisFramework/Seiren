@@ -24,8 +24,10 @@
 
 #include <gtk/gtk.h>
 
+
 static void activate (GtkApplication *app, gpointer user_data) {
 	GtkWidget *window;
+	GtkWidget *spinner, *button;
 	GtkWidget *grid;
 	GtkWidget *text_view;
 	GtkAdjustment *adjustment;
@@ -50,9 +52,22 @@ static void activate (GtkApplication *app, gpointer user_data) {
 	gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text_view), GTK_WRAP_WORD);
 	gtk_container_add (GTK_CONTAINER (scrolled_window), text_view);
 
+	// Spin Button
+	GtkWidget *spinner_label = gtk_label_new ("Enter the Port:");
+	adjustment = gtk_adjustment_new (80.0, 80.0, 4000.0, 10.0, 5.0, 0.0);
+	spinner = gtk_spin_button_new (adjustment, 1.0, 0);
+	gtk_widget_set_hexpand (spinner, TRUE);
+
+	// Deploy Button
+	button = gtk_button_new_with_label ("Deploy");
+	gtk_widget_set_hexpand (button, TRUE);
+
 	// Box Container
 	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
-
+	gtk_container_add (GTK_CONTAINER (box), spinner_label);
+	gtk_container_add (GTK_CONTAINER (box), spinner);
+	gtk_container_add (GTK_CONTAINER (box), button);
+	gtk_container_set_border_width (GTK_CONTAINER (box), 10);
 
 	// Grid Container
 	grid = gtk_grid_new ();
