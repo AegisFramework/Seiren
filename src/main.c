@@ -24,10 +24,11 @@
 
 #include <gtk/gtk.h>
 
+#include "text.h"
+
 
 GtkTextBuffer *buffer;
 GtkTextIter iter;
-
 
 static void activate (GtkApplication *app, gpointer user_data) {
 	GtkWidget *window;
