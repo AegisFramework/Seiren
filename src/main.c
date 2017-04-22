@@ -27,9 +27,29 @@
 static void activate (GtkApplication *app, gpointer user_data) {
 	GtkWidget *window;
 	GtkWidget *grid;
+	GtkWidget *scrolled_window;
+	GtkWidget *box;
+
+	// Window
+	window = gtk_application_window_new (app);
+	gtk_window_set_title (GTK_WINDOW (window), "Seiren Web Server");
+	gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
+
+	// Scrolled Window
+	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 15);
+	gtk_widget_set_hexpand (scrolled_window, TRUE);
+	gtk_widget_set_vexpand (scrolled_window, TRUE);
+
+	// Box Container
+	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
+
 
 	// Grid Container
 	grid = gtk_grid_new ();
+	gtk_grid_attach (GTK_GRID (grid), box, 0, 0, 1, 1);
+	gtk_grid_attach (GTK_GRID (grid), scrolled_window, 1, 0, 3, 1);
 
 	gtk_container_add (GTK_CONTAINER (window), grid);
 
