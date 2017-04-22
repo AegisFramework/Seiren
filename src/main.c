@@ -24,32 +24,26 @@
 
 #include <gtk/gtk.h>
 
-static void
-activate (GtkApplication *app,
-          gpointer        user_data)
-{
-  GtkWidget *window;
+static void activate (GtkApplication *app, gpointer user_data) {
+	GtkWidget *window;
+	GtkWidget *grid;
 
-  window = gtk_application_window_new (app);
-  gtk_window_set_title (GTK_WINDOW (window), "seiren");
-  gtk_window_set_default_size (GTK_WINDOW (window), 200, 200);
+	// Grid Container
+	grid = gtk_grid_new ();
 
-  /* You can add GTK+ widgets to your window here.
-   * See https://developer.gnome.org/ for help.
-   */
+	gtk_container_add (GTK_CONTAINER (window), grid);
 
-  gtk_widget_show (window);
+	gtk_widget_show_all (window);
 }
 
-int main(int   argc,
-         char *argv[])
-{
-  g_autoptr(GtkApplication) app = NULL;
-  int status;
+int main (int argc, char *argv[]) {
+	g_autoptr(GtkApplication) app = NULL;
+	int status;
 
-  app = gtk_application_new ("org.gnome.Seiren", G_APPLICATION_FLAGS_NONE);
-  g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);
-  status = g_application_run (G_APPLICATION (app), argc, argv);
 
-  return status;
+	app = gtk_application_new ("com.aegisframework.Seiren", G_APPLICATION_FLAGS_NONE);
+	g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);
+	status = g_application_run (G_APPLICATION (app), argc, argv);
+
+	return status;
 }
