@@ -160,7 +160,41 @@ int serve(int s) {
 
 
 void *server_init (void *port){
+	int sd, sdo, addrlen, size, r;
+    struct sockaddr_in sin, pin;
 
+    // 1. Crear el socket
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+
+    memset(&sin, 0, sizeof(sin));
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = INADDR_ANY;
+    sin.sin_port = htons(port);
+
+    // 2. Asociar el socket a un IP/puerto
+    r = bind(sd, (struct sockaddr *) &sin, sizeof(sin));
+	if (r < 0) {
+		perror("Bind Error");
+		writeLog("An error ocurred while trying to bind the specified port.");
+		return 0;
+	}
+	writeLog("Port binding successful");
+    // 3. Configurar el backlog
+    listen(sd, 5);
+
+    addrlen = sizeof(pin);
+    // 4. aceptar conexión
+    while( (sdo = accept(sd, (struct sockaddr *)  &pin, &addrlen)) > 0) {
+        //if(!fork()) {
+			writeLog(concatenate("New Client Connection From: ", inet_ntoa(pin.sin_addr)));
+
+            printf("Puerto %d\n", ntohs(pin.sin_port));
+			serve(sdo);
+
+            close(sdo);
+        //}
+	}
+    close(sd);
 }
 
 
