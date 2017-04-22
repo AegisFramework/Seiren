@@ -23,6 +23,7 @@
  */
 
 #include <gtk/gtk.h>
+#include<pthread.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -157,6 +158,21 @@ int serve(int s) {
 }
 
 
+
+void *server_init (void *port){
+
+}
+
+
+
+void deploy (GtkButton *button, gpointer spinner) {
+	pthread_t my_thread;
+	int a = 10;
+	char *message = "Initializing The Server...";
+	gtk_text_buffer_set_text (buffer, message, strlen(message));
+	pthread_create(&my_thread, NULL, server_init, (void*) gtk_spin_button_get_value_as_int (spinner)); // no parentheses here
+}
+
 static void activate (GtkApplication *app, gpointer user_data) {
 	GtkWidget *window;
 	GtkWidget *spinner, *button;
@@ -193,6 +209,7 @@ static void activate (GtkApplication *app, gpointer user_data) {
 	// Deploy Button
 	button = gtk_button_new_with_label ("Deploy");
 	gtk_widget_set_hexpand (button, TRUE);
+	g_signal_connect (button, "clicked", G_CALLBACK (deploy), spinner);
 
 	// Box Container
 	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
