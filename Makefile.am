@@ -31,6 +31,7 @@ GITIGNOREFILES =                                                       \
 	gtk-doc.m4                                                     \
 	gtk-doc.make                                                   \
 	INSTALL                                                        \
-	$(NULL)
+	$(NULL)															\
+	/.flatpak-builder/
 
 -include $(top_srcdir)/git.mk
