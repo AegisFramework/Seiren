@@ -27,6 +27,8 @@
 static void activate (GtkApplication *app, gpointer user_data) {
 	GtkWidget *window;
 	GtkWidget *grid;
+	GtkWidget *text_view;
+	GtkAdjustment *adjustment;
 	GtkWidget *scrolled_window;
 	GtkWidget *box;
 
@@ -41,6 +43,12 @@ static void activate (GtkApplication *app, gpointer user_data) {
 	gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 15);
 	gtk_widget_set_hexpand (scrolled_window, TRUE);
 	gtk_widget_set_vexpand (scrolled_window, TRUE);
+
+	// Text View
+	buffer = gtk_text_buffer_new (NULL);
+	text_view = gtk_text_view_new_with_buffer (buffer);
+	gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text_view), GTK_WRAP_WORD);
+	gtk_container_add (GTK_CONTAINER (scrolled_window), text_view);
 
 	// Box Container
 	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
