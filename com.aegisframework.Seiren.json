@@ -1,6 +1,6 @@
 {
     "app-id": "com.aegisframework.Seiren",
-    "runtime": "org.gnome.Platform",
+    "runtime": "org.gnome.Sdk",
     "runtime-version": "master",
     "sdk": "org.gnome.Sdk",
     "command": "seiren",
@@ -47,6 +47,13 @@
                         "url": "https://github.com/AegisFramework/Seiren.git"
                     }
             ]
+        },
+        {
+    		"name": "server",
+    		"sources": [{
+				"type": "git",
+                        "url": "https://github.com/AegisFramework/Seiren.git"
+    		}]
         }
     ]
 }
