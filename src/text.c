@@ -8,9 +8,10 @@
  * @return char* - result from joining the two strings
  */
 char* concatenate (char *str1, char *str2) {
-	char* result = malloc(strlen(str1) + strlen(str2) + 1);
-	strcat (result, str1);
-	strcat (result, str2);
+	char* result = malloc(strlen(str1) + strlen(str2));
+	result[0]='\0';
+	strncat (result, str1, strlen(str1));
+	strncat (result, str2, strlen(str2));
 	return result;
 }
 
