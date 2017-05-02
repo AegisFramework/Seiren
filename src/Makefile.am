@@ -1,6 +1,6 @@
 bin_PROGRAMS = seiren hello
 
-seiren_SOURCES = main.c text.c text.h
+seiren_SOURCES = main.c main.h text.c text.h server.c server.h
 seiren_CFLAGS = $(SEIREN_CFLAGS)
 
 seiren_LDADD = $(SEIREN_LIBS)
