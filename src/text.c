@@ -25,7 +25,10 @@ int contains (char *str, char key) {
 	return strchr(str, key) != NULL;
 }
 
-
 char *split (char *delimiter, char *string) {
 	return strtok (delimiter, string);
+}
+
+int equal (const char *str1, const char *str2) {
+	return strncmp(str1, str2, strlen(str1)) == 0;
 }
