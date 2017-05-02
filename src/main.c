@@ -39,7 +39,7 @@
 #include <sys/wait.h>
 #include<syslog.h>
 
-#define SIZE 80
+#define SIZE 139
 #define MSGSIZE 1024
 #define READ 0
 #define WRITE 0
@@ -155,7 +155,8 @@ int readLine(int s, char *line, int *result_size) {
     int acum=0, size;
     char buffer[SIZE];
 
-    while( (size=read(s, buffer, SIZE)) > 0) {
+    while((size=read(s, buffer, SIZE)) > 0) {
+		printf("READ LOOP\n");
         if (size < 0) return -1;
         strncpy(line+acum, buffer, size);
         acum += size;
@@ -163,6 +164,8 @@ int readLine(int s, char *line, int *result_size) {
             break;
         }
     }
+
+	printf("ENDED READ LOOP\n");
 
     *result_size = acum;
 
@@ -263,77 +266,75 @@ void run_php () {
 }
 
 int serve(int s) {
-    int r, nlc = 0, fd, read_bytes;
-	int line = 0;
 	struct Request request;
 	struct Response response;
+	int r;
+	int size;
 
-    while(1) {
-		r = readLine(s, request.content, &request.size);
-        request.content[request.size-2] = 0;
-		request.size-=2;
+	r = readLine(s, request.content, &request.size);
+
+	request.size -= 2;
+    request.content[request.size] = 0;
 
 
-		printf("%s\n", request.content);
-		int tok = -1;
+	printf("%s\n", "-------------- Just Started ------------\n");
+	int tok = -1;
 
-		// Split request headers into tokens, using space as delimiter
-		char* token = split(request.content, " ");
-		printf (token);
+	// Split request headers into tokens, using space as delimiter
+	char* token = split(request.content, " ");
 
-		// Get the following tokens
-		while (token != NULL) {
-			if (strncmp("GET", token, 3) == 0) {
-				// Request method is sent in the first line
-				request.method = malloc(strlen(token) + 1);
-				strcpy(request.method, token);
-				write_log(request.method);
-				tok = 1;
-			} else if (strncmp("POST", token, 4) == 0) {
-				// Request method is sent in the first line
-				request.method = malloc(strlen(token) + 1);
-				strcpy(request.method, token);
-				write_log(request.method);
-				tok = 1;
-			} else if(strncmp("HEAD", token, 4) == 0) {
-				// Request method is sent in the first line
-				request.method = malloc(strlen(token) + 1);
-				strcpy(request.method, token);
-				write_log(request.method);
-				tok = 1;
-			} else if (tok == 1) {
-				request.path = malloc(strlen(token) + 1);
-				strcpy(request.path, token);
-				request.extension = content_type (get_filename_ext(request.path));
-				response.mime = malloc(strlen(request.extension) + 1);
-				strcpy(response.mime, request.extension);
-				write_log(response.mime);
-				tok = 2;
-				break;
-			} else if (tok == 2) {
-				if (contains(token, '=')) {
-					printf("%s\n", token);
-
-				}
+	// Get the following tokens
+	while (token != NULL) {
+		if (strncmp("GET", token, 3) == 0) {
+			// Request method is sent in the first line
+			request.method = malloc(strlen(token) + 1);
+			strcpy(request.method, token);
+			write_log(request.method);
+			tok = 1;
+		} else if (strncmp("POST", token, 4) == 0) {
+			// Request method is sent in the first line
+			request.method = malloc(strlen(token) + 1);
+			strcpy(request.method, token);
+			write_log(request.method);
+			tok = 1;
+			printf ("POST Request Received\n");
+		} else if(strncmp("HEAD", token, 4) == 0) {
+			// Request method is sent in the first line
+			request.method = malloc(strlen(token) + 1);
+			strcpy(request.method, token);
+			write_log(request.method);
+			tok = 1;
+		} else if (tok == 1) {
+			request.path = malloc(strlen(token) + 1);
+			strcpy(request.path, token);
+			request.extension = content_type (get_filename_ext(request.path));
+			response.mime = malloc(strlen(request.extension) + 1);
+			strcpy(response.mime, request.extension);
+			write_log(response.mime);
+			tok = 2;
+			printf("Second Step Done\n");
+			//break;
+		} else if (tok > 1) {
+			if (contains(token, '=')) {
+				printf("%s\n", token);
 			}
-			printf("%s\n", token);
-			token = split(NULL, " ");
 		}
 
-		// Reached end of the Request Header
-        if(request.content[request.size-1] == '\n' && request.content[request.size-2] == '\r') {
-            break;
-        }
-		// Esto esta mal mal mal
-		if(strlen(request.content) == 0) {
-			break;
-		}
+		if (strncmp("Content-Length:", token, 14) == 0) {
+			printf("Length Read\n");
+			tok = 3;
+		} if (tok == 3) {
 
-    }
+			size = atoi(token);
+			printf("Length Set as %d", size);
+		}
+		printf("%s\n", token);
+		token = split(NULL, " ");
+	}
+
+	printf("------- Just Ended -------------\n");
 
     sleep(1);
-
-	printf("%s", request.content);
 
 	if (strncmp(request.method, "GET", 3) == 0) {
 		response.file = fopen(concatenate("/opt/lampp/htdocs", request.path), "r");
@@ -386,7 +387,6 @@ int serve(int s) {
 
 		int size = header (&request, &response, s);
 	}
-
 
     sync();
 }
