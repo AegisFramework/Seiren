@@ -24,3 +24,8 @@ char* concatenate (char *str1, char *str2) {
 int contains (char *str, char key) {
 	return strchr(str, key) != NULL;
 }
+
+
+char *split (char *delimiter, char *string) {
+	return strtok (delimiter, string);
+}
