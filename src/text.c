@@ -21,8 +21,8 @@ char* concatenate (char *str1, char *str2) {
  * @param char key - Char to search for
  * @return int - true or false
  */
-int contains (char *str, char key) {
-	return strchr(str, key) != NULL;
+int contains (char *str, char *key) {
+	return strstr(str, key) != NULL;
 }
 
 char *split (char *delimiter, char *string) {

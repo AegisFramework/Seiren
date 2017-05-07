@@ -18,19 +18,11 @@
 #define SIZE 139
 #define MSGSIZE 1024
 
-char *error (int error, char *response) {
-	switch (error) {
-		case 404:
-			break;
-		default:
-			break;
-
-	}
-}
-
 char* content_type(char *extension) {
 	// Text
 	if (strncmp(extension, "html", 4) == 0) {
+		return "Content-Type: text/html\r\n";
+	} else if (strncmp(extension, "php", 3) == 0) {
 		return "Content-Type: text/html\r\n";
 	} else if (strncmp(extension, "css", 3) == 0) {
 		return "Content-Type: text/css\r\n";
@@ -85,23 +77,41 @@ char* content_type(char *extension) {
 }
 
 int readLine(int s, char *line, int *result_size) {
-    int acum=0, size;
+    int acum = 0, size;
     char buffer[SIZE];
+	char *post = "POST";
+	int flag = 0;
+	int i;
+	int cont = 0;
+	int temp_size;
 
-    while((size=read(s, buffer, SIZE)) > 0) {
+    while((size=recv(s, buffer, SIZE, 0)) > 0) {
 		printf("READ LOOP\n");
-        if (size < 0) return -1;
+        if (size < 0) break;
         strncpy(line+acum, buffer, size);
         acum += size;
-        if(line[acum-1] == '\n' && line[acum-2] == '\r') {
-            break;
-        }
+		if (i == 0) {
+			flag = contains(buffer, post);
+		}
+
+        if(line[acum-1] == '\n' && line[acum-2] == '\r' && !flag) {
+			break;
+		} else if (line[acum-1] == '\n' && line[acum-2] == '\r' && flag) {
+			cont = 1;
+			temp_size = size;
+		} else if (cont){
+			if (size > temp_size) {
+
+			} else {
+				break;
+			}
+			temp_size = size;
+		}
+		i++;
     }
-
 	printf("ENDED READ LOOP\n");
-
+	printf("Information Read:\n%s\n", buffer);
     *result_size = acum;
-
     return 0;
 }
 
@@ -137,9 +147,7 @@ char *get_filename_ext(char *filename) {
     return dot + 1;
 }
 
-int header (struct Request *request, struct Response *response, int s) {
-	struct stat buf;
-
+void header (struct Request *request, struct Response *response, int s) {
 	sprintf(response -> content, "HTTP/1.0 %d OK\r\n", response -> code);
 	writeLine(s, response -> content, strlen(response -> content));
 
@@ -150,52 +158,56 @@ int header (struct Request *request, struct Response *response, int s) {
 	writeLine(s, response -> content, strlen(response -> content));
 
 	write_log(concatenate("/opt/lampp/htdocs", request -> path));
-	stat(concatenate("/opt/lampp/htdocs", request -> path), &buf);
-	printf("Size -----------> %ld\n", buf.st_size);
 
-	sprintf(response -> content, "Content-Length: %ld\r\n", buf.st_size);
+	printf("Size -----------> %ld\n", response -> size);
+
+	sprintf(response -> content, "Content-Length: %ld\r\n", response -> size);
+	writeLine(s, response -> content, strlen(response -> content));
+
+	sprintf(response -> content, "Connection: close\r\n");
+	writeLine(s, response -> content, strlen(response -> content));
+
+	sprintf(response -> content, "Server: Seiren Web Server\r\n");
 	writeLine(s, response -> content, strlen(response -> content));
 
 	sprintf(response -> content, "\r\n");
 	writeLine(s, response -> content, strlen(response -> content));
 	FILE *fout = fdopen(s, "w");
-
-	return buf.st_size;
 }
 
-void run_php () {
-	int message_fd[2][2];
-    int i;
+// TODO: Remove this function and use writeLine
+void send_new(int fd, char *msg) {
+ int len = strlen(msg);
+ if (send(fd, msg, len, 0) == -1) {
+  printf("Error in send\n");
+ }
+}
 
-    pipe(message_fd[READ]);
-    pipe(message_fd[WRITE]);
-    close(message_fd[READ][READ]);
-    close(message_fd[WRITE][WRITE]);
-
-    dup2(message_fd[READ][WRITE], 1);
-    dup2(message_fd[WRITE][READ], 0);
-
-	putenv("REQUEST_METHOD=GET");
-	putenv("REDIRECT_STATUS=True");
-	putenv("QUERY_STRING=hola=a&mundo=b");
-	putenv("SCRIPT_FILENAME=test.php");
-
-	execlp("php-cgi", "php-cgi", "/opt/lampp/htdocs/test.php", 0);
-    close(message_fd[READ][WRITE]);
-    close(message_fd[WRITE][READ]);
-
-    FILE *fin = fdopen(message_fd[READ][READ], "r");
-    FILE *fout = fdopen(message_fd[WRITE][WRITE], "w");
-
-	char buffer[32];
-	int size = 0;
-	while(1) {
-		if(feof(fin)) break;
-		size = fread(buffer, 32, 1, fin);
-		fwrite(buffer, 32, 1, stdout);
-	}
-					printf("Done");
-	printf("%s", buffer);
+void run_php (struct Request *request, char *file, int s) {
+		send_new(s, "HTTP/1.1 200 OK\n Server: Web Server in C\n Connection: close\n");
+		if (!fork() || threading) {
+			dup2(s, STDIN_FILENO);
+			dup2(s, STDOUT_FILENO);
+			dup2(s, STDERR_FILENO);
+			close(s);
+			putenv("GATEWAY_INTERFACE=CGI/1.1");
+			putenv(concatenate("REQUEST_METHOD=", request -> method));
+			putenv("REDIRECT_STATUS=true");
+			//printf("%s\n", concatenate("QUERY_STRING=", request -> query));
+			if (equal("POST", request -> method)) {
+				putenv("CONTENT_TYPE=application/x-www-form-urlencoded");
+			}
+			putenv(concatenate("QUERY_STRING=", request -> query));
+			putenv(concatenate("SCRIPT_FILENAME=", file));
+			putenv("SERVER_PROTOCOL=HTTP/1.1");
+			putenv("REMOTE_HOST=127.0.0.1");
+			execl("/usr/bin/php-cgi", "php-cgi", NULL);
+			sleep(1);
+			exit(0);
+		} else {
+			wait(0);
+			sync();
+		}
 }
 
 int serve(int s) {
@@ -205,10 +217,8 @@ int serve(int s) {
 	int size;
 
 	r = readLine(s, request.content, &request.size);
-
 	request.size -= 2;
     request.content[request.size] = 0;
-
 
 	printf("%s\n", "-------------- Just Started ------------\n");
 	int tok = -1;
@@ -218,37 +228,30 @@ int serve(int s) {
 
 	// Get the following tokens
 	while (token != NULL) {
-		if (strncmp("GET", token, 3) == 0) {
-			// Request method is sent in the first line
-			request.method = malloc(strlen(token) + 1);
-			strcpy(request.method, token);
-			write_log(request.method);
-			tok = 1;
-		} else if (strncmp("POST", token, 4) == 0) {
-			// Request method is sent in the first line
-			request.method = malloc(strlen(token) + 1);
-			strcpy(request.method, token);
-			write_log(request.method);
-			tok = 1;
-			printf ("POST Request Received\n");
-		} else if(strncmp("HEAD", token, 4) == 0) {
+		if (equal("GET", token) || equal("HEAD", token) || equal("POST", token)) {
 			// Request method is sent in the first line
 			request.method = malloc(strlen(token) + 1);
 			strcpy(request.method, token);
 			write_log(request.method);
 			tok = 1;
 		} else if (tok == 1) {
+
 			request.path = malloc(strlen(token) + 1);
 			strcpy(request.path, token);
-			request.extension = content_type (get_filename_ext(request.path));
-			response.mime = malloc(strlen(request.extension) + 1);
-			strcpy(response.mime, request.extension);
+			char *extension = get_filename_ext(request.path);
+			request.extension = malloc(strlen(extension) + 1);
+			strcpy(request.extension, extension);
+			char *mime = content_type (request.extension);
+			response.mime = malloc(strlen(mime) + 1);
+			strcpy(response.mime, mime);
 			write_log(response.mime);
 			tok = 2;
-			printf("Second Step Done\n");
+
+
+
 			//break;
 		} else if (tok > 1) {
-			if (contains(token, '=')) {
+			if (contains(token, "=")) {
 				printf("%s\n", token);
 			}
 		}
@@ -256,8 +259,8 @@ int serve(int s) {
 		if (strncmp("Content-Length:", token, 14) == 0) {
 			printf("Length Read\n");
 			tok = 3;
-		} if (tok == 3) {
-
+		}
+		if (tok == 3) {
 			size = atoi(token);
 			printf("Length Set as %d", size);
 		}
@@ -267,20 +270,63 @@ int serve(int s) {
 
 	printf("------- Just Ended -------------\n");
 
+	if (contains(request.path, "?")) {
+		char *requested_file = split(request.path, "?");
+		char *query = split(NULL, "?");
+		request.path = malloc(strlen(requested_file) + 1);
+		strcpy(request.path, requested_file);
+
+		request.query = malloc(strlen(query) + 1);
+		strcpy(request.query, query);
+	}
+
     sleep(1);
 
-	if (strncmp(request.method, "GET", 3) == 0) {
+	if (equal(request.method, "GET")) {
+		response.file = fopen(concatenate("/opt/lampp/htdocs", request.path), "r");
+		struct stat buf;
+		stat(concatenate("/opt/lampp/htdocs", request.path), &buf);
+		response.size = buf.st_size;
+		int size = response.size;
+
+		if (response.file) {
+			response.code = 200;
+			if (equal("php", request.extension)) {
+				run_php(&request, concatenate("/opt/lampp/htdocs", request.path), s);
+			} else {
+				header (&request, &response, s);
+				char file[size];
+				response.size = fread(file, 1, size, response.file);
+				int suma = 0;
+				while( (response.size=write(s, &file[suma], MSGSIZE)) > 0) {
+					suma += response.size;
+					if (suma >= size) break;
+				}
+			}
+
+
+		} else {
+			response.code = 404;
+			request.extension = "html";
+			response.mime = "Content-Type: text/html\r\n";
+			request.path = "/error/404.html";
+			response.file = fopen(concatenate("/opt/lampp/htdocs", request.path), "r");
+			header (&request, &response, s);
+			char file[size];
+			response.size = fread(file, 1, size, response.file);
+			int suma = 0;
+			while( (response.size=write(s, &file[suma], MSGSIZE)) > 0) {
+				suma += response.size;
+				if (suma >= size) break;
+			}
+		}
+
+	} else if (equal(request.method, "HEAD")) {
+
 		response.file = fopen(concatenate("/opt/lampp/htdocs", request.path), "r");
 
 		if (response.file) {
 			response.code = 200;
-			if (strncmp(request.extension, "php", 3) == 0) {
-				run_php();
-			} else {
-
-			}
-
-
 		} else {
 			response.code = 404;
 			response.mime = "Content-Type: text/html\r\n";
@@ -288,39 +334,23 @@ int serve(int s) {
 			response.file = fopen(request.path, "r");
 		}
 
-		int size = header (&request, &response, s);
+		header (&request, &response, s);
+	} else if (equal(request.method, "POST")) {
+		run_php(&request, concatenate("/opt/lampp/htdocs", request.path), s);
+	} else {
+		response.code = 400;
+		response.mime = "Content-Type: text/html\r\n";
+		request.path = "/app/bin/error/400.html";
+		response.file = fopen(request.path, "r");
+		header (&request, &response, s);
 		char file[size];
 		response.size = fread(file, 1, size, response.file);
-		printf("Archivo: %d\n", response.size);
 		int suma = 0;
 		while( (response.size=write(s, &file[suma], MSGSIZE)) > 0) {
 			suma += response.size;
 			if (suma >= size) break;
 		}
-
-	} else if (strncmp(request.method, "HEAD", 4) == 0) {
-
-		response.file = fopen(concatenate("/opt/lampp/htdocs", request.path), "r");
-
-		if (response.file) {
-			response.code = 200;
-			if (strncmp(request.extension, "php", 3) == 0) {
-				run_php();
-			} else {
-
-			}
-
-
-		} else {
-			response.code = 404;
-			response.mime = "Content-Type: text/html\r\n";
-			request.path = "/app/bin/error/404.html";
-			response.file = fopen(request.path, "r");
-		}
-
-		int size = header (&request, &response, s);
 	}
-
     sync();
 }
 
@@ -363,7 +393,6 @@ void *server_init (void *port){
 
 		        printf("Puerto %d\n", ntohs(pin.sin_port));
 				serve(sdo);
-
 		        close(sdo);
 				exit(0);
 		    } else {
@@ -371,14 +400,10 @@ void *server_init (void *port){
 			}
 		} else {
 			write_log(concatenate("New Client Connection From: ", inet_ntoa(pin.sin_addr)));
-
 	        printf("Puerto %d\n", ntohs(pin.sin_port));
 			serve(sdo);
-
 	        close(sdo);
 		}
-
 	}
-
     close(sd);
 }

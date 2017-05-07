@@ -8,7 +8,9 @@ struct Request {
 	char *method;
 	char *path;
 	char *extension;
+	char *status;
 	char content[MSGSIZE];
+	char* query;
 };
 
 struct Response {
@@ -23,7 +25,7 @@ int serve (int s);
 
 void run_php ();
 
-int header (struct Request *request, struct Response *response, int s);
+void header (struct Request *request, struct Response *response, int s);
 
 char *get_filename_ext (char *filename);
 

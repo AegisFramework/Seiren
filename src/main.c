@@ -24,6 +24,7 @@
 
 #include <gtk/gtk.h>
 #include <pthread.h>
+#include <glib.h>
 #include <syslog.h>
 #include "text.h"
 #include "server.h"
@@ -42,7 +43,7 @@ void clear () {
 
 void write_log (char* str) {
 	openlog("Seiren", LOG_PID, LOG_USER);
-	syslog(LOG_INFO, "Start logging");
+	syslog(LOG_INFO, str);
 	GtkWidget *label = gtk_label_new (str);
 	gtk_container_add (GTK_CONTAINER (text), label);
 	gtk_label_set_line_wrap (GTK_LABEL(label), TRUE);
@@ -123,7 +124,7 @@ static void activate (GtkApplication *app, gpointer user_data) {
 
 	// Spin Button
 	GtkWidget *spinner_label = gtk_label_new ("Enter the Port:");
-	adjustment = gtk_adjustment_new (80.0, 80.0, 6655350, 10.0, 5.0, 0.0);
+	adjustment = gtk_adjustment_new (3000.0, 80.0, 6655350, 10.0, 5.0, 0.0);
 	spinner = gtk_spin_button_new (adjustment, 1.0, 0);
 	gtk_widget_set_hexpand (spinner, TRUE);
 
