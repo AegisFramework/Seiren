@@ -131,7 +131,6 @@ int readLine(int s, char *line, int *result_size) {
         strncpy(line+acum, buffer, size);
         acum += size;
 		if (i == 0) {
-			printf("We have a POST\n");
 			flag = contains(buffer, post);
 		}
 
@@ -139,24 +138,17 @@ int readLine(int s, char *line, int *result_size) {
 			break;
 		}
 
-		if(size <= temp_size) {
-			printf("It could have ended here\n");
-		}
-
-        if(line[acum-1] == '\n' && line[acum-2] == '\r' && !flag) {
+        if (line[acum-1] == '\n' && line[acum-2] == '\r' && !flag) {
 			break;
 		} else if (line[acum-1] == '\n' && line[acum-2] == '\r' && flag) {
 			cont = 1;
 			temp_size = size;
-			printf("One\n");
 		}
 
 		if (cont){
-			printf("Two\n");
 			if (size > temp_size) {
-				printf("Three\n");
+
 			} else {
-				printf("Four\n");
 				break;
 			}
 			temp_size = size;
@@ -269,7 +261,7 @@ int serve(int s) {
 	request.size -= 2;
     request.content[request.size] = 0;
 
-	printf("%s\n", "-------------- Just Started ------------\n");
+	printf("%s\n", "-------------- Request Body Start ------------\n");
 	int tok = -1;
 
 	// Split request headers into tokens, using space as delimiter
@@ -317,7 +309,7 @@ int serve(int s) {
 		token = split(NULL, " ");
 	}
 
-	printf("------- Just Ended -------------\n");
+	printf("------- Request Body End -------------\n");
 
 	if (contains(request.path, "?")) {
 		char *requested_file = split(request.path, "?");
@@ -409,7 +401,6 @@ int serve(int s) {
 		run_php(&request, concatenate(root, request.path), s);
 	} else {
 		struct stat buf;
-		printf("DAFUQ\n");
 		response.code = 400;
 		response.mime = "Content-Type: text/html\r\n";
 		request.path = "/error/400.html";
