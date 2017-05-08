@@ -1,3 +1,27 @@
+/* server.c
+ *
+ * Copyright (C) 2017 Aegis Framework
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE X CONSORTIUM BE LIABLE FOR ANY
+ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -34,7 +58,7 @@ char* content_type(char *extension) {
 	if (strncmp(extension, "png", 3) == 0) {
 		return "Content-Type: image/png\r\n";
 	} else if (strncmp(extension, "jpg", 3) == 0) {
-		return "Content-Type: image/jpeg\r\n";
+		return "Content-Type: image/jpg\r\n";
 	} else if (strncmp(extension, "jpeg", 4) == 0) {
 		return "Content-Type: image/jpeg\r\n";
 	} else if (strncmp(extension, "gif", 3) == 0) {
@@ -73,6 +97,22 @@ char* content_type(char *extension) {
 		return "Content-Type: application/font-woff\r\n";
 	}
 
+	// Archives
+	if (strncmp(extension, "zip", 3) == 0) {
+		return "Content-Type: application/octet-stream\r\n";
+	} else if (strncmp(extension, "rar", 3) == 0) {
+		return "Content-Type: application/octet-stream\r\n";
+	} else if (strncmp(extension, "tar", 3) == 0) {
+		return "Content-Type: application/octet-stream\r\n";
+	} else if (strncmp(extension, "gz", 2) == 0) {
+		return "Content-Type: application/octet-stream\r\n";
+	}
+
+	// Files
+	if (strncmp(extension, "pdf", 3) == 0) {
+		return "Content-Type: application/pdf\r\n";
+	}
+
 	return "Content-Type: text/plain\r\n";
 }
 
@@ -81,7 +121,7 @@ int readLine(int s, char *line, int *result_size) {
     char buffer[SIZE];
 	char *post = "POST";
 	int flag = 0;
-	int i;
+	int i = 0;
 	int cont = 0;
 	int temp_size;
 
@@ -91,7 +131,16 @@ int readLine(int s, char *line, int *result_size) {
         strncpy(line+acum, buffer, size);
         acum += size;
 		if (i == 0) {
+			printf("We have a POST\n");
 			flag = contains(buffer, post);
+		}
+
+		if (contains (buffer, "www-form-urlencoded")) {
+			break;
+		}
+
+		if(size <= temp_size) {
+			printf("It could have ended here\n");
 		}
 
         if(line[acum-1] == '\n' && line[acum-2] == '\r' && !flag) {
@@ -99,18 +148,23 @@ int readLine(int s, char *line, int *result_size) {
 		} else if (line[acum-1] == '\n' && line[acum-2] == '\r' && flag) {
 			cont = 1;
 			temp_size = size;
-		} else if (cont){
-			if (size > temp_size) {
+			printf("One\n");
+		}
 
+		if (cont){
+			printf("Two\n");
+			if (size > temp_size) {
+				printf("Three\n");
 			} else {
+				printf("Four\n");
 				break;
 			}
 			temp_size = size;
 		}
+
 		i++;
     }
 	printf("ENDED READ LOOP\n");
-	printf("Information Read:\n%s\n", buffer);
     *result_size = acum;
     return 0;
 }
@@ -157,7 +211,7 @@ void header (struct Request *request, struct Response *response, int s) {
 	sprintf(response -> content, response -> mime);
 	writeLine(s, response -> content, strlen(response -> content));
 
-	write_log(concatenate("/opt/lampp/htdocs", request -> path));
+	write_log(concatenate(root, request -> path));
 
 	printf("Size -----------> %ld\n", response -> size);
 
@@ -175,39 +229,34 @@ void header (struct Request *request, struct Response *response, int s) {
 	FILE *fout = fdopen(s, "w");
 }
 
-// TODO: Remove this function and use writeLine
-void send_new(int fd, char *msg) {
- int len = strlen(msg);
- if (send(fd, msg, len, 0) == -1) {
-  printf("Error in send\n");
- }
-}
-
 void run_php (struct Request *request, char *file, int s) {
-		send_new(s, "HTTP/1.1 200 OK\n Server: Web Server in C\n Connection: close\n");
-		if (!fork() || threading) {
-			dup2(s, STDIN_FILENO);
-			dup2(s, STDOUT_FILENO);
-			dup2(s, STDERR_FILENO);
-			close(s);
-			putenv("GATEWAY_INTERFACE=CGI/1.1");
-			putenv(concatenate("REQUEST_METHOD=", request -> method));
-			putenv("REDIRECT_STATUS=true");
-			//printf("%s\n", concatenate("QUERY_STRING=", request -> query));
-			if (equal("POST", request -> method)) {
-				putenv("CONTENT_TYPE=application/x-www-form-urlencoded");
-			}
-			putenv(concatenate("QUERY_STRING=", request -> query));
-			putenv(concatenate("SCRIPT_FILENAME=", file));
-			putenv("SERVER_PROTOCOL=HTTP/1.1");
-			putenv("REMOTE_HOST=127.0.0.1");
-			execl("/usr/bin/php-cgi", "php-cgi", NULL);
-			sleep(1);
-			exit(0);
-		} else {
-			wait(0);
-			sync();
+	char *head = "HTTP/1.1 200 OK\nServer: Web Server in C\n Connection: close\n";
+	send(s, head, strlen(head), 0);
+	if (!fork() || threading) {
+		dup2(s, STDIN_FILENO);
+		dup2(s, STDOUT_FILENO);
+		dup2(s, STDERR_FILENO);
+		close(s);
+		putenv("GATEWAY_INTERFACE=CGI/1.1");
+		putenv(concatenate("REQUEST_METHOD=", request -> method));
+		putenv("REDIRECT_STATUS=true");
+		if (equal("POST", request -> method)) {
+			putenv("CONTENT_TYPE=multipart/form-data");
+			putenv("CONTENT_DISPOSITION=form-data");
+			putenv(concatenate("CONTENT_LENGTH=", "141"));
 		}
+		putenv(concatenate("QUERY_STRING=", request -> query));
+		putenv(concatenate("SCRIPT_FILENAME=", file));
+		putenv("SERVER_PROTOCOL=HTTP/1.1");
+		putenv("REMOTE_HOST=127.0.0.1");
+		execl("/usr/bin/php-cgi", "php-cgi", NULL);
+		perror("PHP");
+		sleep(1);
+		exit(0);
+	} else {
+		wait(0);
+		sync();
+	}
 }
 
 int serve(int s) {
@@ -283,16 +332,23 @@ int serve(int s) {
     sleep(1);
 
 	if (equal(request.method, "GET")) {
-		response.file = fopen(concatenate("/opt/lampp/htdocs", request.path), "r");
+
+		if (!contains(request.path, ".")) {
+			request.extension = "html";
+			response.mime = "Content-Type: text/html\r\n";
+			request.path = concatenate(request.path, "index.html");
+		}
+
+		response.file = fopen(concatenate(root, request.path), "r");
 		struct stat buf;
-		stat(concatenate("/opt/lampp/htdocs", request.path), &buf);
+		stat(concatenate(root, request.path), &buf);
 		response.size = buf.st_size;
 		int size = response.size;
 
 		if (response.file) {
 			response.code = 200;
 			if (equal("php", request.extension)) {
-				run_php(&request, concatenate("/opt/lampp/htdocs", request.path), s);
+				run_php(&request, concatenate(root, request.path), s);
 			} else {
 				header (&request, &response, s);
 				char file[size];
@@ -304,14 +360,26 @@ int serve(int s) {
 				}
 			}
 
-
 		} else {
-			response.code = 404;
-			request.extension = "html";
-			response.mime = "Content-Type: text/html\r\n";
-			request.path = "/error/404.html";
-			response.file = fopen(concatenate("/opt/lampp/htdocs", request.path), "r");
+
+			if (contains(request.path, "favicon.ico")) {
+				response.code = 200;
+				request.extension = "ico";
+				response.mime = "Content-Type: image/x-icon\r\n";
+				request.path = "/favicon.ico";
+			} else {
+				response.code = 404;
+				request.extension = "html";
+				response.mime = "Content-Type: text/html\r\n";
+				request.path = "/error/404.html";
+			}
+
+			response.file = fopen(concatenate(server_dir, request.path), "r");
+			stat(concatenate(server_dir, request.path), &buf);
+			response.size = buf.st_size;
+			int size = response.size;
 			header (&request, &response, s);
+
 			char file[size];
 			response.size = fread(file, 1, size, response.file);
 			int suma = 0;
@@ -323,26 +391,34 @@ int serve(int s) {
 
 	} else if (equal(request.method, "HEAD")) {
 
-		response.file = fopen(concatenate("/opt/lampp/htdocs", request.path), "r");
-
+		response.file = fopen(concatenate(root, request.path), "r");
+		struct stat buf;
 		if (response.file) {
 			response.code = 200;
+			stat(concatenate(root, request.path), &buf);
 		} else {
 			response.code = 404;
 			response.mime = "Content-Type: text/html\r\n";
-			request.path = "/app/bin/error/404.html";
-			response.file = fopen(request.path, "r");
+			request.path = "/error/404.html";
+			response.file = fopen(concatenate(server_dir, request.path), "r");
+			stat(concatenate(server_dir, request.path), &buf);
 		}
-
+		response.size = buf.st_size;
 		header (&request, &response, s);
 	} else if (equal(request.method, "POST")) {
-		run_php(&request, concatenate("/opt/lampp/htdocs", request.path), s);
+		run_php(&request, concatenate(root, request.path), s);
 	} else {
+		struct stat buf;
+		printf("DAFUQ\n");
 		response.code = 400;
 		response.mime = "Content-Type: text/html\r\n";
-		request.path = "/app/bin/error/400.html";
-		response.file = fopen(request.path, "r");
+		request.path = "/error/400.html";
+		response.file = fopen(concatenate(server_dir, request.path), "r");
+		stat(concatenate(server_dir, request.path), &buf);
+		response.size = buf.st_size;
+		int size = response.size;
 		header (&request, &response, s);
+
 		char file[size];
 		response.size = fread(file, 1, size, response.file);
 		int suma = 0;

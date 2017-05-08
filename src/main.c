@@ -23,6 +23,7 @@
  */
 
 #include <gtk/gtk.h>
+#include <stdlib.h>
 #include <pthread.h>
 #include <glib.h>
 #include <syslog.h>
@@ -31,6 +32,8 @@
 
 GtkWidget *text;
 int threading = FALSE;
+char *root = "/opt/lampp/htdocs";
+char *server_dir;
 
 void clear () {
 	GList *children, *iter;
@@ -59,6 +62,25 @@ void deploy (GtkButton *button, gpointer spinner) {
 	pthread_create(&my_thread, NULL, server_init, (void*) gtk_spin_button_get_value_as_int (spinner));
 }
 
+void change_root (GtkButton *button, gpointer entry) {
+	GtkWidget *dialog;
+	GtkFileChooser *chooser;
+	gint res;
+	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
+	dialog = gtk_file_chooser_dialog_new ("Select Root Directory", NULL, action, "_Cancel", GTK_RESPONSE_CANCEL, "_Open", GTK_RESPONSE_ACCEPT, NULL);
+
+	chooser = GTK_FILE_CHOOSER (dialog);
+
+	res = gtk_dialog_run (GTK_DIALOG (dialog));
+
+	if (res == GTK_RESPONSE_ACCEPT) {
+		root =  gtk_file_chooser_get_filename (chooser);
+		gtk_entry_set_text (entry, root);
+	}
+
+	gtk_widget_destroy (dialog);
+}
+
 void toggle_button (GtkButton *button, gpointer other) {
 	if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(button))) {
 		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(other), FALSE);
@@ -83,6 +105,9 @@ static void activate (GtkApplication *app, gpointer user_data) {
 	GtkAdjustment *adjustment;
 	GtkWidget *scrolled_window;
 	GtkWidget *box;
+	GtkWidget *root_box;
+	GtkWidget *root_entry;
+	GtkWidget *root_button;
 
 	// Window
 	window = gtk_application_window_new (app);
@@ -122,6 +147,23 @@ static void activate (GtkApplication *app, gpointer user_data) {
 	gtk_container_add (GTK_CONTAINER (toggle_box), single);
 	gtk_container_add (GTK_CONTAINER (toggle_box), multi);
 
+	// Root Directory
+	GtkWidget *root_container = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
+	GtkWidget *root_label = gtk_label_new ("Server Root Directory:");
+	root_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 10);
+	root_entry = gtk_entry_new ();
+	gtk_widget_set_hexpand (root_entry, TRUE);
+
+	gtk_entry_set_text(GTK_ENTRY (root_entry), "/opt/lampp/htdocs");
+	root_button =  gtk_button_new_with_label ("Change");
+	g_signal_connect (root_button, "clicked", G_CALLBACK (change_root), root_entry);
+	gtk_widget_set_hexpand (root_button, TRUE);
+	gtk_container_add (GTK_CONTAINER (root_box), root_entry);
+	gtk_container_add (GTK_CONTAINER (root_box), root_button);
+
+	gtk_container_add (GTK_CONTAINER (root_container), root_label);
+	gtk_container_add (GTK_CONTAINER (root_container), root_box);
+
 	// Spin Button
 	GtkWidget *spinner_label = gtk_label_new ("Enter the Port:");
 	adjustment = gtk_adjustment_new (3000.0, 80.0, 6655350, 10.0, 5.0, 0.0);
@@ -139,6 +181,7 @@ static void activate (GtkApplication *app, gpointer user_data) {
 	gtk_container_add (GTK_CONTAINER (box), spinner);
 	gtk_container_add (GTK_CONTAINER (box), behavior);
 	gtk_container_add (GTK_CONTAINER (box), toggle_box);
+	gtk_container_add (GTK_CONTAINER (box), root_container);
 	gtk_container_add (GTK_CONTAINER (box), button);
 	gtk_container_set_border_width (GTK_CONTAINER (box), 10);
 
@@ -148,6 +191,9 @@ static void activate (GtkApplication *app, gpointer user_data) {
 	gtk_grid_attach (GTK_GRID (grid), scrolled_window, 1, 0, 3, 1);
 
 	gtk_container_add (GTK_CONTAINER (window), grid);
+
+	server_dir = concatenate (getenv("HOME"), "/.seiren");
+	printf("%s\n", server_dir);
 
 	gtk_widget_show_all (window);
 }
