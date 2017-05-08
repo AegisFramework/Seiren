@@ -166,7 +166,7 @@ static void activate (GtkApplication *app, gpointer user_data) {
 
 	// Spin Button
 	GtkWidget *spinner_label = gtk_label_new ("Enter the Port:");
-	adjustment = gtk_adjustment_new (3000.0, 80.0, 6655350, 10.0, 5.0, 0.0);
+	adjustment = gtk_adjustment_new (3000.0, 80.0, 6655350.00, 10.0, 5.0, 0.0);
 	spinner = gtk_spin_button_new (adjustment, 1.0, 0);
 	gtk_widget_set_hexpand (spinner, TRUE);
 
